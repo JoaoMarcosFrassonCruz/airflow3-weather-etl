@@ -1,8 +1,8 @@
-# 🌦️ Relatório diário de clima: capitais brasileiras
+# Clima nas capitais
 
-**Último dia processado:** 2026-11-16  
-**Histórico acumulado:** 10 dias · 80 registros (desde 2026-11-07)  
-_Gerado automaticamente pelo GitHub Actions (`.github/workflows/daily-weather.yml`)._
+Último dia processado: 2026-11-16. Histórico com 10 dias e 80 registros, desde 2026-11-07.
+
+Arquivo gerado pelo workflow `daily-weather.yml`.
 
 | # | Capital | UF | Média °C | Mín °C | Máx °C | Umidade % | Chuva mm |
 |---|---------|----|---------:|-------:|-------:|----------:|---------:|
@@ -16,5 +16,5 @@ _Gerado automaticamente pelo GitHub Actions (`.github/workflows/daily-weather.ym
 | 8 | Brasília | DF | 20.1 | 18.7 | 23.5 | 91.1 | 12.9 |
 
 ## Recordes do histórico
-- 🔥 Maior temperatura: **34.8 °C** em Manaus (2026-11-12)
-- 🌧️ Dia mais chuvoso: **33.7 mm** em Rio de Janeiro (2026-11-07)
+- Maior temperatura: 34.8 °C em Manaus (2026-11-12)
+- Dia mais chuvoso: 33.7 mm em Rio de Janeiro (2026-11-07)

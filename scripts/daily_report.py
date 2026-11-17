@@ -77,12 +77,12 @@ def write_report(rows: list[dict], day: str) -> None:
                    key=lambda r: float(r["temp_avg_c"]), reverse=True)
     days = sorted({r["day"] for r in rows})
     lines = [
-        "# 🌦️ Relatório diário de clima: capitais brasileiras",
+        "# Clima nas capitais",
         "",
-        f"**Último dia processado:** {day}  ",
-        f"**Histórico acumulado:** {len(days)} dias · {len(rows)} registros "
-        f"(desde {days[0]})  ",
-        "_Gerado automaticamente pelo GitHub Actions (`.github/workflows/daily-weather.yml`)._",
+        f"Último dia processado: {day}. Histórico com {len(days)} dias e {len(rows)} "
+        f"registros, desde {days[0]}.",
+        "",
+        "Arquivo gerado pelo workflow `daily-weather.yml`.",
         "",
         "| # | Capital | UF | Média °C | Mín °C | Máx °C | Umidade % | Chuva mm |",
         "|---|---------|----|---------:|-------:|-------:|----------:|---------:|",
@@ -96,8 +96,8 @@ def write_report(rows: list[dict], day: str) -> None:
     lines += [
         "",
         "## Recordes do histórico",
-        f"- 🔥 Maior temperatura: **{hottest['temp_max_c']} °C** em {hottest['city']} ({hottest['day']})",
-        f"- 🌧️ Dia mais chuvoso: **{rainiest['precipitation_mm']} mm** em {rainiest['city']} ({rainiest['day']})",
+        f"- Maior temperatura: {hottest['temp_max_c']} °C em {hottest['city']} ({hottest['day']})",
+        f"- Dia mais chuvoso: {rainiest['precipitation_mm']} mm em {rainiest['city']} ({rainiest['day']})",
         "",
     ]
     REPORT_PATH.write_text("\n".join(lines), encoding="utf-8")

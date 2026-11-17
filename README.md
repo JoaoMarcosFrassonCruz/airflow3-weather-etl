@@ -1,99 +1,80 @@
-# 🌦️ Weather ETL com Apache Airflow 3
+# airflow3-weather-etl
 
-Pipeline de Engenharia de Dados que coleta, transforma e carrega dados climáticos horários de **8 capitais brasileiras** em um Data Warehouse PostgreSQL, orquestrado com **Apache Airflow 3**.
+Projeto que fiz para praticar Apache Airflow 3 depois de terminar um curso sobre o assunto. É um ETL simples, mas montado como eu montaria em um ambiente de verdade: pega dados de clima de 8 capitais na API do Open-Meteo, trata e grava num Postgres. Uma segunda DAG roda depois que os dados chegam e gera as agregações diárias.
 
-![Graph view da DAG weather_etl](docs/images/01_graph_weather_etl.png)
+![DAG weather_etl](docs/images/01_graph_weather_etl.png)
 
-## 🏗️ Arquitetura
+## DAGs
+
+**weather_etl** (diária, com catchup)
 
 ```
-                 ┌──────────────── weather_etl (@daily, catchup) ────────────────┐
- Open-Meteo API  │ create_tables                                                  │
- (8 capitais) ──►│ target_date ─► extract[8] ─► transform[8] ─► load ─► quality_check ──► Asset: weather_hourly
-                 └────────────────────────────────────────────────────────────────┘                │
-                                                                                                    ▼ (data-aware scheduling)
-                                                     weather_daily_summary: build_daily_table ─► hottest_cities_report
-                                                                                     │
-                                                                                     ▼
-                                                                    PostgreSQL: weather_hourly / weather_daily
+create_tables
+target_date -> extract (1 por cidade) -> transform (1 por cidade) -> load -> quality_check
 ```
 
-| DAG | Agendamento | O que faz |
-|-----|-------------|-----------|
-| `weather_etl` | `@daily` com backfill (catchup) | Extrai dados horários da API Open-Meteo, normaliza, valida e faz upsert no PostgreSQL |
-| `weather_daily_summary` | Disparada pelo **Asset** `weather_hourly` | Agrega mín/máx/média de temperatura, umidade e chuva por cidade/dia e gera ranking |
+- `extract` usa dynamic task mapping (`.expand(city=CITIES)`), então cada cidade vira uma task separada e uma falha em uma não derruba as outras.
+- Cada execução processa o dia anterior completo, com base na data lógica. Com isso o backfill funciona sem nenhum ajuste.
+- O `load` faz upsert (`ON CONFLICT DO UPDATE`), então rodar o mesmo dia duas vezes não duplica nada.
+- O `quality_check` confere se chegaram todas as cidades e as 24 horas. Se faltar mais de 5%, a task falha e o asset não é atualizado.
 
-## ✨ Conceitos de Airflow 3 aplicados
+**weather_daily_summary** (disparada pelo asset `weather_hourly`)
 
-- **TaskFlow API** (`@dag`, `@task`) com o novo `airflow.sdk`
-- **Dynamic Task Mapping**: `extract.partial(...).expand(city=CITIES)` cria uma task por cidade em tempo de execução
-- **Assets (data-aware scheduling)**: a DAG de agregação roda automaticamente quando novos dados são publicados
-- **Backfill/catchup** com processamento por data lógica (cada execução processa o dia anterior completo)
-- **Idempotência**: `INSERT ... ON CONFLICT DO UPDATE`, então reprocessar um dia nunca duplica dados
-- **Data Quality Check**: a execução falha se a cobertura (cidades × 24h) ficar abaixo de 95%, e o Asset não é publicado
-- **Resiliência**: `retries` com *exponential backoff* e limite de concorrência por task (`max_active_tis_per_dag`) para respeitar a API
-- **Connections via variável de ambiente** (`AIRFLOW_CONN_WAREHOUSE_DB`), sem credenciais no código das DAGs
-- **PostgresHook** (provider oficial) para escrita e leitura no warehouse
+Não tem cron. Ela roda quando o `quality_check` da DAG anterior termina com sucesso e atualiza o asset. Recalcula a tabela `weather_daily` (mín, máx e média de temperatura, umidade e chuva por cidade/dia) e imprime um ranking no log.
 
-## 📸 Execução real
+## Rodando
 
-**Histórico de execuções: 10 dias processados via backfill, 0 falhas**
-![Grid view](docs/images/02_grid_runs.png)
-
-**DAG disparada por Asset**
-![Asset-triggered DAG](docs/images/03_graph_asset_trigger.png)
-
-**Data Quality Check: 8 cidades, 192/192 registros**
-![Quality check log](docs/images/05_log_quality_check.png)
-
-**Resultado: ranking das capitais por temperatura média**
-![Ranking log](docs/images/04_log_ranking.png)
-
-## 🔁 Ingestão diária automatizada (GitHub Actions)
-
-Além do ambiente Airflow, o workflow [`daily-weather.yml`](.github/workflows/daily-weather.yml) roda **todo dia às 06:00 (Brasília)**. Ele coleta o clima do dia anterior, aplica a mesma lógica de agregação e validação de qualidade e versiona o resultado no repositório:
-
-- 📈 [`data/weather_daily.csv`](data/weather_daily.csv): dataset histórico, crescendo diariamente
-- 📝 [`data/REPORT.md`](data/REPORT.md): ranking do dia e recordes do histórico
-
-A execução é idempotente: reprocessar um dia substitui os dados em vez de duplicar. Também dá para rodar manualmente em *Actions → Daily weather ingestion → Run workflow*, informando uma data.
-
-## 🚀 Como executar
-
-Pré-requisito: Docker Desktop.
+Precisa de Docker.
 
 ```bash
 docker compose up -d
 ```
 
-- Airflow UI: http://localhost:8081 (ambiente local, sem login)
-- PostgreSQL: `localhost:5433` (usuário/senha `airflow`, banco `warehouse`)
+A UI fica em http://localhost:8081 (sem login, é ambiente local). O Postgres fica exposto na porta 5433, com usuário e senha `airflow` e banco `warehouse`.
 
-As DAGs começam ativas e o backfill dos últimos dias roda automaticamente. Para consultar os dados:
+As DAGs já sobem ativas e o catchup processa os últimos dias sozinho. Para olhar os dados:
 
 ```bash
-docker compose exec postgres psql -U airflow -d warehouse -c "SELECT * FROM weather_daily ORDER BY day DESC, temp_avg_c DESC LIMIT 10;"
+docker compose exec postgres psql -U airflow -d warehouse -c "select * from weather_daily order by day desc limit 10;"
 ```
 
-Para encerrar: `docker compose down -v`
+O compose usa `airflow standalone` com LocalExecutor, o que serve para desenvolvimento e não para produção.
 
-## 📁 Estrutura
+## Execução
+
+Backfill de 10 dias, todas as execuções com sucesso:
+
+![grid](docs/images/02_grid_runs.png)
+
+Log do quality check:
+
+![quality check](docs/images/05_log_quality_check.png)
+
+DAG de agregação sendo disparada pelo asset:
+
+![asset](docs/images/03_graph_asset_trigger.png)
+
+Ranking gerado no final:
+
+![ranking](docs/images/04_log_ranking.png)
+
+## Coleta diária no GitHub Actions
+
+Para o repositório não ficar parado, deixei um workflow ([daily-weather.yml](.github/workflows/daily-weather.yml)) que roda todo dia às 6h (horário de Brasília). Ele faz a mesma coleta e agregação, só que sem o Airflow, e salva o resultado em [data/weather_daily.csv](data/weather_daily.csv) e [data/REPORT.md](data/REPORT.md). Dá para rodar manualmente pela aba Actions, passando uma data.
+
+## Estrutura
 
 ```
-├── dags/
-│   ├── weather_etl.py             # ETL principal (extract → transform → load → quality)
-│   └── weather_daily_summary.py   # Agregação disparada por Asset
-├── include/
-│   └── cities.py                  # Configuração das capitais monitoradas
-├── sql/init/                      # Criação do banco warehouse
-├── docs/images/                   # Prints da execução
-└── docker-compose.yaml            # Airflow 3.1 + PostgreSQL 16
+dags/
+  weather_etl.py
+  weather_daily_summary.py
+include/
+  cities.py              lista de capitais monitoradas
+scripts/
+  daily_report.py        coleta usada pelo GitHub Actions
+sql/init/                cria o banco warehouse
+data/                    dataset atualizado diariamente
+docker-compose.yaml      Airflow 3.1 + Postgres 16
 ```
 
-## 🛠️ Stack
-
-Apache Airflow 3.1 · Python 3.12 · PostgreSQL 16 · Docker Compose · Open-Meteo API
-
-> ⚠️ O `docker-compose.yaml` é configurado para **desenvolvimento local** (modo standalone, credenciais padrão, sem autenticação na UI). Não use essa configuração em produção.
-
-Dados meteorológicos: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0).
+Dados de clima: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0).

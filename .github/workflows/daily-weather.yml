@@ -39,5 +39,5 @@ jobs:
             exit 0
           fi
           DAY=$(tail -n 1 data/weather_daily.csv | cut -d, -f1)
-          git commit -m "data: ingestão diária de clima ${DAY} (8 capitais)"
+          git commit -m "data: clima de ${DAY}"
           git push
