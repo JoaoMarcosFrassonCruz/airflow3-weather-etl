@@ -1,0 +1,43 @@
+name: Daily weather ingestion
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # todo dia às 06:00 (Brasília)
+  workflow_dispatch:
+    inputs:
+      day:
+        description: "Dia a processar (YYYY-MM-DD). Vazio = ontem"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-weather
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Coletar e agregar dados do dia
+        run: python scripts/daily_report.py ${{ inputs.day }}
+
+      - name: Commitar dataset atualizado
+        run: |
+          git config user.name "Joao Marcos Frasson Cruz"
+          git config user.email "109981999+JoaoMarcosFrassonCruz@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "Sem alterações nos dados."
+            exit 0
+          fi
+          DAY=$(tail -n 1 data/weather_daily.csv | cut -d, -f1)
+          git commit -m "data: ingestão diária de clima ${DAY} (8 capitais)"
+          git push

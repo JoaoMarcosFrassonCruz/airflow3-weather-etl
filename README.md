@@ -49,6 +49,15 @@ Pipeline de Engenharia de Dados que coleta, transforma e carrega dados climátic
 **Resultado: ranking das capitais por temperatura média**
 ![Ranking log](docs/images/04_log_ranking.png)
 
+## 🔁 Ingestão diária automatizada (GitHub Actions)
+
+Além do ambiente Airflow, o workflow [`daily-weather.yml`](.github/workflows/daily-weather.yml) roda **todo dia às 06:00 (Brasília)**. Ele coleta o clima do dia anterior, aplica a mesma lógica de agregação e validação de qualidade e versiona o resultado no repositório:
+
+- 📈 [`data/weather_daily.csv`](data/weather_daily.csv): dataset histórico, crescendo diariamente
+- 📝 [`data/REPORT.md`](data/REPORT.md): ranking do dia e recordes do histórico
+
+A execução é idempotente: reprocessar um dia substitui os dados em vez de duplicar. Também dá para rodar manualmente em *Actions → Daily weather ingestion → Run workflow*, informando uma data.
+
 ## 🚀 Como executar
 
 Pré-requisito: Docker Desktop.
