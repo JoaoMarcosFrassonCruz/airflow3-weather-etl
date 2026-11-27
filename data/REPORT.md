@@ -1,19 +1,19 @@
 # Clima nas capitais
 
-Último dia processado: 2026-11-25. Histórico com 19 dias e 152 registros, desde 2026-11-07.
+Último dia processado: 2026-11-26. Histórico com 20 dias e 160 registros, desde 2026-11-07.
 
 Arquivo gerado pelo workflow `daily-weather.yml`.
 
 | # | Capital | UF | Média °C | Mín °C | Máx °C | Umidade % | Chuva mm |
 |---|---------|----|---------:|-------:|-------:|----------:|---------:|
-| 1 | Manaus | AM | 32.2 | 28.4 | 36.3 | 62.0 | 0.1 |
-| 2 | Recife | PE | 28.3 | 26.6 | 30.6 | 67.8 | 1.0 |
-| 3 | Rio de Janeiro | RJ | 27.9 | 25.4 | 32.0 | 88.7 | 21.9 |
-| 4 | Salvador | BA | 27.2 | 24.8 | 30.3 | 75.7 | 1.0 |
-| 5 | Belo Horizonte | MG | 23.8 | 21.3 | 28.7 | 82.7 | 13.1 |
-| 6 | São Paulo | SP | 23.1 | 20.8 | 26.6 | 84.0 | 13.3 |
-| 7 | Brasília | DF | 22.5 | 19.2 | 27.2 | 84.0 | 10.4 |
-| 8 | Porto Alegre | RS | 22.3 | 19.7 | 25.4 | 80.6 | 1.2 |
+| 1 | Manaus | AM | 31.7 | 29.0 | 35.2 | 64.8 | 0.7 |
+| 2 | Recife | PE | 28.4 | 26.0 | 30.7 | 66.5 | 0.5 |
+| 3 | Salvador | BA | 27.0 | 24.3 | 30.1 | 76.5 | 0.1 |
+| 4 | Rio de Janeiro | RJ | 24.3 | 21.7 | 25.5 | 90.3 | 22.9 |
+| 5 | Brasília | DF | 23.6 | 20.5 | 28.4 | 79.8 | 2.4 |
+| 6 | Belo Horizonte | MG | 22.8 | 18.3 | 28.3 | 86.1 | 14.2 |
+| 7 | Porto Alegre | RS | 22.0 | 17.3 | 27.4 | 63.5 | 0.0 |
+| 8 | São Paulo | SP | 19.7 | 17.2 | 22.0 | 85.7 | 4.5 |
 
 ## Recordes do histórico
 - Maior temperatura: 36.3 °C em Manaus (2026-11-25)
